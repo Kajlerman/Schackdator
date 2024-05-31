@@ -1,8 +1,6 @@
 # Main driver file
 # Responsible for handling user input and displaying current GameState object
 
-import os
-import sys
 import pygame as p
 import ChessEngine
 
@@ -26,6 +24,9 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = ChessEngine.GameState()
+    validMoves = gs.getValidMoves()
+    moveMade = False # Flag variable for when a move is made
+
     loadImages() # Only do this once, before the while loop
     running = True
     sqSelected = () # No square is selected, keep track of the last click of the user (tuple: (row, col))
@@ -34,6 +35,7 @@ def main():
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
+            # Mouse handler
             elif e.type == p.MOUSEBUTTONDOWN:
                 location = p.mouse .get_pos() # (x,y) location of mouse
                 col = location[0] // SQ_SIZE
@@ -47,9 +49,21 @@ def main():
                 if len(playerClicks) == 2: # After 2nd move
                     move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board)
                     print(move.getChessNotation())
+                    if move in validMoves:
+                        gs.makeMove(move)
+                        moveMade = True
                     gs.makeMove(move)
                     sqSelected = () # Reset user clicks
                     playerClicks = []
+            # Key handler
+            elif e.type == p.KEYDOWN:
+                if e.key == p.K_z: # Undo when 'z' is pressed
+                    gs.undoMove()
+                    moveMade = True
+
+        if moveMade:
+            validMoves = gs.getValidMoves()
+            moveMade = False
 
         drawGameState(screen, gs)
         clock.tick(MAX_FPS)

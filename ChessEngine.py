@@ -25,6 +25,64 @@ class GameState():
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moveLog.append(move) # Log the move so we can undo it later
         self.whiteToMove # Swap players
+    
+    # Undo the last move
+    def undoMove(self):
+        if len(self.moveLog) != 0: # Make sure there's a move to undo
+            move = self.moveLog.pop()
+            self.board[move.startRow][move.startCol] = move.pieceMoved
+            self.board[move.endRow][move.endCol] = move.pieceCaptured
+            self.whiteToMove = not self.whiteToMove # Switch turns back
+    
+    # All moves considering checks
+    def getValidMoves(self):
+        return self.getAllPossibleMoves() #for now
+
+    # All moves without considering checks
+    def getAllPossibleMoves(self):
+        moves = []
+        for r in range(len(self.board)): # Number of rows
+            for c in range(len(self.board[r])): # Number of cols in given row
+                turn = self.board[r][c][0]
+                if (turn == 'w' and self.whiteToMove) and (turn == 'b' and not self.whiteToMove):
+                    piece = self.board[r][c][1]
+                    if piece == 'P':
+                        self.getPawnMoves(r, c, moves)
+                    elif piece == 'R':
+                        self.getRookMoves(r, c, moves)
+                    elif piece == 'N':
+                        self.getKnightMoves(r, c, moves)
+                    elif piece == 'B':
+                        self.getBishopMoves(r, c, moves)
+                    elif piece == 'Q':
+                        self.getQueenMoves(r, c, moves)
+                    elif piece == 'K':
+                        self.getKingMoves(r, c, moves)
+        return moves
+
+    # Get all pawn moves for pawn located at row, col and add these moves to the list
+    def getPawnMoves(self, r, c, moves):
+        pass
+
+    # Get all rook moves for rook located at row, col and add these moves to the list
+    def getRookMoves(self, r, c, moves):
+        pass
+
+    # Get all knight moves for knight located at row, col and add these moves to the list
+    def getKnightMoves(self, r, c, moves):
+        pass
+
+    # Get all bishop moves for bishop located at row, col and add these moves to the list
+    def getBishopMoves(self, r, c, moves):
+        pass
+
+    # Get all queen moves for queen located at row, col and add these moves to the list
+    def getQueenMoves(self, r, c, moves):
+        pass
+
+    # Get all king moves for king located at row, col and add these moves to the list
+    def getKingMoves(self, r, c, moves):
+        pass
 
 class Move():
     # Maps keys to values
@@ -41,6 +99,14 @@ class Move():
         self.endCol = endSq[1]
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
+        self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow * 10 + self.endCol
+        print(self.moveID)
+
+    #Overriding the equals method
+    def __eq__(self, other):
+        if isinstance(other, Move):
+            return self.moveID == other.moveID
+        return False
 
     def getChessNotation(self):
         # Change this later to real chess notation
