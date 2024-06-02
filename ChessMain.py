@@ -52,8 +52,10 @@ def main():
                     if move in validMoves:
                         gs.makeMove(move)
                         moveMade = True
-                    sqSelected = () # Reset user clicks
-                    playerClicks = []
+                        sqSelected = () # Deselect
+                        playerClicks = [] # Clear player clicks
+                    else:
+                        playerClicks = [sqSelected] # Reset invalid clicks to selected piece
             # Key handler
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z: # Undo when 'z' is pressed
