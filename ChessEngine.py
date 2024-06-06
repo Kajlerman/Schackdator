@@ -20,6 +20,10 @@ class GameState():
                               "B": self.getBishopMoves, "Q": self.getQueenMoves, "K": self.getKingMoves}
         self.whiteToMove = True
         self.moveLog = []
+        self.whiteKingLocation = (7, 4)
+        self.blackKingLocation = (0, 4)
+        self.checkMate = False
+        self.staleMate = False
 
     # Takes a move as a parameter and executes it (this will not work for castling, pawn promotion, and en-passant)
     def makeMove(self, move):
@@ -27,7 +31,11 @@ class GameState():
         self.board[move.endRow][move.endCol] = move.pieceMoved
         self.moveLog.append(move) # Log the move so we can undo it later
         self.whiteToMove = not self.whiteToMove # Swap players
-    
+        if move.pieceMoved == "wK": # Update the king's position
+            self.whiteKingLocation = (move.endRow, move.endCol)
+        elif move.pieceMoved == "bK":
+            self.blackKingLocation = (move.endRow, move.endCol)
+
     # Undo the last move
     def undoMove(self):
         if len(self.moveLog) != 0: # Make sure there's a move to undo
@@ -35,10 +43,57 @@ class GameState():
             self.board[move.startRow][move.startCol] = move.pieceMoved
             self.board[move.endRow][move.endCol] = move.pieceCaptured
             self.whiteToMove = not self.whiteToMove # Switch turns back
-    
+            if move.pieceMoved == "wK": # Update the king's position
+                self.whiteKingLocation = (move.startRow, move.startCol)
+            elif move.pieceMoved == "bK":
+                self.blackKingLocation = (move.startRow, move.startCol)
+
     # All moves considering checks
     def getValidMoves(self):
-        return self.getAllPossibleMoves() #for now
+    # 1) Generate all possible moves
+        moves = self.getAllPossibleMoves()
+
+        # 2) Test each move for validity
+        for i in range(len(moves)-1, -1, -1):  # Iterate backwards to safely remove elements
+            move = moves[i]
+            self.makeMove(move) # Make possible move
+            self.whiteToMove = not self.whiteToMove  # Switch back to threatened king's turn
+
+            # 3) Check if move leaves king in check
+            if self.inCheck():
+                moves.remove(move)  # Remove move if it leaves king in check
+            self.undoMove()
+            self.whiteToMove = not self.whiteToMove  # Switch turns back
+
+#        print(f"Valid moves:", [move.getChessNotation() for move in moves])
+
+        # Determine checkmate or stalemate
+        if len(moves) == 0:
+            if self.inCheck():
+                self.checkMate = True
+            else:
+                self.staleMate = True
+        else:
+            self.checkMate = False
+            self.staleMate = False
+
+        return moves
+
+    # Determine if the current player is in check
+    def inCheck(self):
+        kingPos = self.whiteKingLocation if self.whiteToMove else self.blackKingLocation
+        return self.squaredUnderAttack(kingPos[0], kingPos[1])
+
+
+#    # Determine if the enemy can attack the square r, c
+    def squaredUnderAttack(self, r, c):
+        self.whiteToMove = not self.whiteToMove  # Switch to opponent's turn
+        oppMoves = self.getAllPossibleMoves() # Generate all of opponent's possible moves
+        self.whiteToMove = not self.whiteToMove  # Switch turns back
+        for move in oppMoves:
+            if move.endRow == r and move.endCol == c:
+                return True
+        return False
 
     # All moves without considering checks
     def getAllPossibleMoves(self):
@@ -94,7 +149,7 @@ class GameState():
                         break
                     else: # Friendly piece invalid
                         break
-                else: # Off board
+                else: # Off board invalid
                     break
 
     # Get all knight moves for knight located at row, col and add these moves to the list
@@ -106,7 +161,7 @@ class GameState():
             endCol = c + m[1]
             if 0 <= endRow < 8 and 0 <= endCol < 8:
                 endPiece = self.board[endRow][endCol]
-                if endPiece[0] != allyColor: # Not an ally piece (empty or enemy piece)
+                if endPiece[0] != allyColor: # Not an allied piece (empty or enemy piece)
                     moves.append(Move((r, c), (endRow, endCol), self.board))
 
     # Get all bishop moves for bishop located at row, col and add these moves to the list
@@ -123,6 +178,8 @@ class GameState():
                         moves.append(Move((r, c), (endRow, endCol), self.board))
                     elif endPiece[0] == enemyColor:
                         moves.append(Move((r, c), (endRow, endCol), self.board))
+                        break
+                    else:
                         break
                 else:
                     break
@@ -169,8 +226,8 @@ class Move():
 
     def getChessNotation(self):
         # Change this later to real chess notation
-        return self.getRankFile(self.startRow, self.startCol) + self.getRankFile(self.endRow, self.endCol)
+        return Move.getRankFile(self.startRow, self.startCol) + Move.getRankFile(self.endRow, self.endCol)
     
-    def getRankFile(self, r, c):
-        return self.colsToFiles[c] + self.rowsToRanks[r]
+    def getRankFile(r, c):
+        return Move.colsToFiles[c] + Move.rowsToRanks[r]
     
